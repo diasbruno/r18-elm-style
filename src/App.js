@@ -1,4 +1,4 @@
-import { taggedSum } from 'daggy';
+import { tagged, taggedSum } from 'daggy';
 import { useReducer } from 'react';
 
 // types
@@ -14,9 +14,7 @@ const State = taggedSum('State', {
   'Count': ['value'],
 });
 
-const AppState = taggedSum('AppState', {
-  'A': ['user', 'state'],
-});
+const AppState = tagged('AppState', ['user', 'state']);
 
 const AppEvent = taggedSum('AppEvent', {
   'UpdateLoginForm': ['field', 'value'],
@@ -28,10 +26,9 @@ const AppEvent = taggedSum('AppEvent', {
 
 const { Guest, Authd } = User;
 const { LoginForm, LoggingIn, Count } = State;
-const { A } = AppState;
 const { UpdateLoginForm, SubmitLogin, LoggedIn, LoggingOut, Increment } = AppEvent;
 
-const initialAppState = () => A(Guest, LoginForm('', ''));
+const initialAppState = () => AppState(Guest, LoginForm('', ''));
 
 // components
 
@@ -97,12 +94,12 @@ function App() {
       // and integrate on the current state.
       return event.cata({
         'Increment': (value) =>
-          A(acc.user, Count(acc.state.value + value)),
+          AppState(acc.user, Count(acc.state.value + value)),
         'UpdateLoginForm': (field, value) => {
           (field === 'username') ?
               (acc.state.username = value) :
               (acc.state.password = value);
-          return A(acc.user,
+          return AppState(acc.user,
                    LoginForm(acc.state.username,
                              acc.state.password));
         },
@@ -112,9 +109,9 @@ function App() {
           ).then(
             user => dispatch(LoggedIn(user))
           );
-          return A(acc.user, LoggingIn);
+          return AppState(acc.user, LoggingIn);
         },
-        'LoggedIn': (user) => A(Authd(user), Count(1)),
+        'LoggedIn': (user) => AppState(Authd(user), Count(1)),
         'LoggingOut': () => initialAppState()
       });
     },
